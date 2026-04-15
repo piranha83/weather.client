@@ -1,0 +1,35 @@
+name: ci
+
+on:
+  push:
+    branches: 
+      - 'main'
+    paths-ignore:
+      - '**/*.md'
+      - '**/*.gitignore'
+      - '**/*.gitattributes'
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '9.0'
+
+      - name: Restore packages
+        run: dotnet restore
+
+      - name: Build app
+        run: dotnet build --configuration Release --no-restore
+
+      - name: Test app
+        run: dotnet test --configuration Release --no-build --filter TestCategory!=Integration
+
+      - name: Pack app
+        run: dotnet pack --no-build -c Release -o out
+
+      - name: Push to nuget
+        run: dotnet nuget push out/*.nupkg --source https://api.nuget.org/v3/index.json --api-key ${{ secrets.NUGET_API_KEY }} --skip-duplicate
